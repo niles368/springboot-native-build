@@ -1,0 +1,24 @@
+# Using Oracle GraalVM for JDK 17
+FROM container-registry.oracle.com/graalvm/native-image:17-ol8 AS builder
+
+# Set the working directory to /home/app
+WORKDIR /build
+
+# Copy the source code into the image for building
+COPY . /build
+COPY pom_i.xml /build/pom.xml
+
+# Build
+RUN ./mvnw --no-transfer-progress native:compile -Pnative
+
+# The deployment Image
+# FROM container-registry.oracle.com/os/oraclelinux:8-slim
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.8-1072.1697626218
+# FROM registry.access.redhat.com/ubi8-micro:8.8-7.1696517612
+# micro會出現 error while loading shared libraries: libz.so.1: cannot open shared object file: No such file or directory
+
+EXPOSE 8080
+
+# Copy the native executable into the containers
+COPY --from=builder /build/target/hello app
+ENTRYPOINT ["/app"]
